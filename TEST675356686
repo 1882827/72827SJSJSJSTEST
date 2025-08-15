@@ -86,6 +86,75 @@ end)
 
 tabAutomation:AddLabel("Misc").TextSize = 22
 
+tabAutomation:AddSwitch("Show Pets", function(State)
+    local petsEvent = game:GetService("ReplicatedStorage").rEvents.showPetsEvent
+    if State then
+        petsEvent:FireServer("showPets")
+    else
+        petsEvent:FireServer("hidePets")
+    end
+end)
+
+do
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local ShowOthersPets = true
+
+    local function SetPetsVisibility(player, visible)
+        if player == LocalPlayer then return end
+        local character = player.Character
+        if not character then return end
+
+        local petsFolder = character:FindFirstChild("Pets")
+        if petsFolder then
+            for _, pet in ipairs(petsFolder:GetChildren()) do
+                pet.LocalTransparencyModifier = visible and 0 or 1
+            end
+        end
+    end
+
+    local function WatchPetsFolder(player)
+        if player == LocalPlayer then return end
+        local character = player.Character
+        if not character then return end
+
+        local petsFolder = character:FindFirstChild("Pets")
+        if petsFolder then
+            SetPetsVisibility(player, ShowOthersPets)
+            petsFolder.ChildAdded:Connect(function(pet)
+                pet.LocalTransparencyModifier = ShowOthersPets and 0 or 1
+            end)
+        end
+    end
+
+    local function WatchCharacter(player)
+        player.CharacterAdded:Connect(function()
+            task.wait(0.1)
+            WatchPetsFolder(player)
+        end)
+
+        if player.Character then
+            WatchPetsFolder(player)
+        end
+    end
+
+    local function ApplyToAllPlayers()
+        for _, player in ipairs(Players:GetPlayers()) do
+            SetPetsVisibility(player, ShowOthersPets)
+        end
+    end
+
+    Players.PlayerAdded:Connect(WatchCharacter)
+    for _, player in ipairs(Players:GetPlayers()) do
+        WatchCharacter(player)
+    end
+
+    tabAutomation:AddSwitch("Show Other Pets", function(State)
+        ShowOthersPets = State
+        ApplyToAllPlayers()
+    end)
+end
+
 local parts = {}
 local partSize = 2048
 local totalDistance = 50000
