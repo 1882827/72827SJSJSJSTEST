@@ -231,17 +231,30 @@ tabAutomation:AddSwitch("Walk On Water", function(bool)
     end
 end)
 
+local antiAFKConnection
+
+local function setupAntiAFK()
+    local vu = game:GetService("VirtualUser")
+    antiAFKConnection = game.Players.LocalPlayer.Idled:Connect(function()
+        vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    end)
+end
+
+setupAntiAFK()
+
 local antiAFKEnabled = true
 tabAutomation:AddSwitch("Anti AFK", function(bool)
     antiAFKEnabled = bool
-    
     if bool then
-        setupAntiAFK()
+        if not antiAFKConnection then
+            setupAntiAFK()
+        end
     else
         if antiAFKConnection then
             antiAFKConnection:Disconnect()
             antiAFKConnection = nil
-            print("Anti-AFK system disabled")
         end
     end
 end, true)
