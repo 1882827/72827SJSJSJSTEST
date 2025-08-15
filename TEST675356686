@@ -176,3 +176,27 @@ tabAutomation:AddSwitch("Anti AFK", function(bool)
         end
     end
 end, true)
+
+local infJumpEnabled = false
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+player.CharacterAdded:Connect(function(char)
+    character = char
+    humanoid = char:WaitForChild("Humanoid")
+end)
+
+local function toggleInfJump(state)
+    infJumpEnabled = state
+end
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if infJumpEnabled and humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+tabAutomation:AddSwitch("Inf Jump", function(state)
+    toggleInfJump(state)
+end)
