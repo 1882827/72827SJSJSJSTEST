@@ -11,10 +11,21 @@ local tabAutomation = window:AddTab("Main")
 tabAutomation:AddLabel("Settings").TextSize = 22
 
 local walkSpeedValue = 16
+local originalWalkSpeed = 16
+
 tabAutomation:AddTextBox("Speed", function(text)
     local speed = tonumber(text)
     if speed and speed >= 1 and speed <= 500 then
         walkSpeedValue = speed
+        if setSpeed then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = walkSpeedValue
+                end
+            end
+        end
     end
 end)
 
@@ -22,6 +33,16 @@ local setSpeed = false
 tabAutomation:AddSwitch("Set", function(state)
     setSpeed = state
     task.spawn(function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                if state then
+                    originalWalkSpeed = humanoid.WalkSpeed
+                end
+            end
+        end
+        
         while setSpeed do
             local char = game.Players.LocalPlayer.Character
             if char then
@@ -32,21 +53,38 @@ tabAutomation:AddSwitch("Set", function(state)
             end
             task.wait(0.1)
         end
+        
         local char = game.Players.LocalPlayer.Character
         if char then
             local humanoid = char:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                humanoid.WalkSpeed = 16
+                humanoid.WalkSpeed = originalWalkSpeed
             end
         end
     end)
 end)
 
 local sizeValue = 1
+local originalSizes = {}
+
 tabAutomation:AddTextBox("Size", function(text)
     local size = tonumber(text)
-    if size and size >= 1 and size <= 100 then
+    if size and size >= 0 and size <= 100 then
         sizeValue = size
+        if setSize then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+                        local scaleInstance = humanoid:FindFirstChild(scaleName)
+                        if scaleInstance then
+                            scaleInstance.Value = sizeValue
+                        end
+                    end
+                end
+            end
+        end
     end
 end)
 
@@ -54,6 +92,21 @@ local setSize = false
 tabAutomation:AddSwitch("Set", function(state)
     setSize = state
     task.spawn(function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                if state and not next(originalSizes) then
+                    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+                        local scaleInstance = humanoid:FindFirstChild(scaleName)
+                        if scaleInstance then
+                            originalSizes[scaleName] = scaleInstance.Value
+                        end
+                    end
+                end
+            end
+        end
+        
         while setSize do
             local char = game.Players.LocalPlayer.Character
             if char then
@@ -69,14 +122,15 @@ tabAutomation:AddSwitch("Set", function(state)
             end
             task.wait(0.1)
         end
+        
         local char = game.Players.LocalPlayer.Character
         if char then
             local humanoid = char:FindFirstChildOfClass("Humanoid")
             if humanoid then
                 for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
                     local scaleInstance = humanoid:FindFirstChild(scaleName)
-                    if scaleInstance then
-                        scaleInstance.Value = 1
+                    if scaleInstance and originalSizes[scaleName] then
+                        scaleInstance.Value = originalSizes[scaleName]
                     end
                 end
             end
