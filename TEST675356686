@@ -224,24 +224,24 @@ end)
 
 tabAutomation:AddLabel("Misc").TextSize = 22
 
-tabAutomation:AddSwitch("Show Pets", function(state)
+tabAutomation:AddSwitch("Hide Pets", function(state)
     local petsEvent = game:GetService("ReplicatedStorage").rEvents.showPetsEvent
     if state then
-        petsEvent:FireServer("showPets")
-    else
         petsEvent:FireServer("hidePets")
+    else
+        petsEvent:FireServer("showPets")
     end
 end)
 
 do
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
-    local showOthersPets = true
+    local hideOthersPets = false
     
     local characterConnections = {}
     local petsFolderConnections = {}
 
-    local function setOthersPetsVisibility(player, visible)
+    local function setOthersPetsVisibility(player, hidden)
         if player == LocalPlayer then return end
         local character = player.Character
         if not character then return end
@@ -250,11 +250,11 @@ do
 
         for _, pet in ipairs(petsFolder:GetChildren()) do
             if pet:IsA("BasePart") then
-                pet.LocalTransparencyModifier = visible and 0 or 1
+                pet.LocalTransparencyModifier = hidden and 1 or 0
             elseif pet:IsA("Model") then
                 for _, part in ipairs(pet:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.LocalTransparencyModifier = visible and 0 or 1
+                        part.LocalTransparencyModifier = hidden and 1 or 0
                     end
                 end
             end
@@ -268,17 +268,17 @@ do
         end
 
         if player ~= LocalPlayer then
-            setOthersPetsVisibility(player, showOthersPets)
+            setOthersPetsVisibility(player, hideOthersPets)
         end
         
         petsFolderConnections[player] = petsFolder.ChildAdded:Connect(function(pet)
             if player ~= LocalPlayer then
                 if pet:IsA("BasePart") then
-                    pet.LocalTransparencyModifier = showOthersPets and 0 or 1
+                    pet.LocalTransparencyModifier = hideOthersPets and 1 or 0
                 elseif pet:IsA("Model") then
                     for _, part in ipairs(pet:GetDescendants()) do
                         if part:IsA("BasePart") then
-                            part.LocalTransparencyModifier = showOthersPets and 0 or 1
+                            part.LocalTransparencyModifier = hideOthersPets and 1 or 0
                         end
                     end
                 end
@@ -323,7 +323,7 @@ do
     local function applyToAllOtherPlayers()
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                setOthersPetsVisibility(player, showOthersPets)
+                setOthersPetsVisibility(player, hideOthersPets)
             end
         end
     end
@@ -340,8 +340,8 @@ do
         watchCharacter(player)
     end)
 
-    tabAutomation:AddSwitch("Show Other Pets", function(state)
-        showOthersPets = state
+    tabAutomation:AddSwitch("Hide Others Pets", function(state)
+        hideOthersPets = state
         applyToAllOtherPlayers()
     end)
 end
