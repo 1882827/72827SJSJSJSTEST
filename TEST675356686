@@ -233,7 +233,6 @@ tabAutomation:AddSwitch("Hide Pets", function(state)
     end
 end)
 
-do
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local hideOthersPets = false
@@ -273,6 +272,7 @@ do
         
         petsFolderConnections[player] = petsFolder.ChildAdded:Connect(function(pet)
             if player ~= LocalPlayer then
+                task.wait(0.1)
                 if pet:IsA("BasePart") then
                     pet.LocalTransparencyModifier = hideOthersPets and 1 or 0
                 elseif pet:IsA("Model") then
@@ -293,10 +293,13 @@ do
         end
 
         characterConnections[player] = player.CharacterAdded:Connect(function(character)
-            task.wait(0.5)
+            task.wait(1)
             local petsFolder = character:FindFirstChild("Pets")
             if petsFolder then
                 watchPetsFolder(player, petsFolder)
+                if player ~= LocalPlayer then
+                    setOthersPetsVisibility(player, hideOthersPets)
+                end
             end
         end)
 
@@ -304,6 +307,9 @@ do
             local petsFolder = player.Character:FindFirstChild("Pets")
             if petsFolder then
                 watchPetsFolder(player, petsFolder)
+                if player ~= LocalPlayer then
+                    setOthersPetsVisibility(player, hideOthersPets)
+                end
             end
         end
     end
@@ -323,7 +329,12 @@ do
     local function applyToAllOtherPlayers()
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                setOthersPetsVisibility(player, hideOthersPets)
+                if player.Character then
+                    local petsFolder = player.Character:FindFirstChild("Pets")
+                    if petsFolder then
+                        setOthersPetsVisibility(player, hideOthersPets)
+                    end
+                end
             end
         end
     end
@@ -340,11 +351,13 @@ do
         watchCharacter(player)
     end)
 
+    task.wait(2)
+    applyToAllOtherPlayers()
+
     tabAutomation:AddSwitch("Hide Others Pets", function(state)
         hideOthersPets = state
         applyToAllOtherPlayers()
     end)
-end
 
 local parts = {}
 local partSize = 2048
