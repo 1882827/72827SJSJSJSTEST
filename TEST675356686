@@ -70,15 +70,21 @@ local setSize = false
 local sizeLoop = nil
 local player = game.Players.LocalPlayer
 
+local scaleNames = {"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}
+
+local function convertSize(value)
+    return 0.1 + (value / 100) * 4.9
+end
+
 local function applySize(character)
     if not character or not character:IsDescendantOf(workspace) then return false end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
     local success = true
-    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+    for _, scaleName in pairs(scaleNames) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance then
-            scaleInstance.Value = sizeValue
+            scaleInstance.Value = convertSize(sizeValue)
         else
             success = false
             warn("Scale " .. scaleName .. " not found in humanoid")
@@ -91,7 +97,7 @@ local function saveOriginalSizes(character)
     if not character then return false end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
-    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+    for _, scaleName in pairs(scaleNames) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance then
             originalSizes[scaleName] = scaleInstance.Value
@@ -104,7 +110,7 @@ local function restoreOriginalSize(character)
     if not character or not next(originalSizes) then return false end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
-    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+    for _, scaleName in pairs(scaleNames) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance and originalSizes[scaleName] then
             scaleInstance.Value = originalSizes[scaleName]
@@ -115,7 +121,7 @@ end
 
 tabAutomation:AddTextBox("Size", function(text)
     local size = tonumber(text)
-    if size and size >= 0 and size <= 100 then
+    if size and size >= 0 and size <= 100 and size % 1 == 0 then
         sizeValue = size
         if setSize then
             local character = player.Character
@@ -124,7 +130,7 @@ tabAutomation:AddTextBox("Size", function(text)
             end
         end
     else
-        warn("Invalid size! Use a number between 0 and 100.")
+        warn("Invalid value (enter from 0 to 100)")
     end
 end)
 
@@ -152,8 +158,6 @@ tabAutomation:AddSwitch("Set", function(state)
                     applySize(currentCharacter)
                 end
             end)
-        else
-            warn("No character found!")
         end
     else
         local character = player.Character
