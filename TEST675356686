@@ -224,9 +224,9 @@ end)
 
 tabAutomation:AddLabel("Misc").TextSize = 22
 
-tabAutomation:AddSwitch("Show Pets", function(State)
+tabAutomation:AddSwitch("Show Pets", function(state)
     local petsEvent = game:GetService("ReplicatedStorage").rEvents.showPetsEvent
-    if State then
+    if state then
         petsEvent:FireServer("showPets")
     else
         petsEvent:FireServer("hidePets")
@@ -236,60 +236,113 @@ end)
 do
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
-    local ShowOthersPets = true
+    local showOthersPets = true
+    
+    local characterConnections = {}
+    local petsFolderConnections = {}
 
-    local function SetPetsVisibility(player, visible)
+    local function setOthersPetsVisibility(player, visible)
         if player == LocalPlayer then return end
         local character = player.Character
         if not character then return end
-
         local petsFolder = character:FindFirstChild("Pets")
-        if petsFolder then
-            for _, pet in ipairs(petsFolder:GetChildren()) do
+        if not petsFolder then return end
+
+        for _, pet in ipairs(petsFolder:GetChildren()) do
+            if pet:IsA("BasePart") then
                 pet.LocalTransparencyModifier = visible and 0 or 1
+            elseif pet:IsA("Model") then
+                for _, part in ipairs(pet:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.LocalTransparencyModifier = visible and 0 or 1
+                    end
+                end
             end
         end
     end
 
-    local function WatchPetsFolder(player)
-        if player == LocalPlayer then return end
-        local character = player.Character
-        if not character then return end
-
-        local petsFolder = character:FindFirstChild("Pets")
-        if petsFolder then
-            SetPetsVisibility(player, ShowOthersPets)
-            petsFolder.ChildAdded:Connect(function(pet)
-                pet.LocalTransparencyModifier = ShowOthersPets and 0 or 1
-            end)
+    local function watchPetsFolder(player, petsFolder)
+        if petsFolderConnections[player] then
+            petsFolderConnections[player]:Disconnect()
+            petsFolderConnections[player] = nil
         end
+
+        if player ~= LocalPlayer then
+            setOthersPetsVisibility(player, showOthersPets)
+        end
+        
+        petsFolderConnections[player] = petsFolder.ChildAdded:Connect(function(pet)
+            if player ~= LocalPlayer then
+                if pet:IsA("BasePart") then
+                    pet.LocalTransparencyModifier = showOthersPets and 0 or 1
+                elseif pet:IsA("Model") then
+                    for _, part in ipairs(pet:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.LocalTransparencyModifier = showOthersPets and 0 or 1
+                        end
+                    end
+                end
+            end
+        end)
     end
 
-    local function WatchCharacter(player)
-        player.CharacterAdded:Connect(function()
-            task.wait(0.1)
-            WatchPetsFolder(player)
+    local function watchCharacter(player)
+        if characterConnections[player] then
+            characterConnections[player]:Disconnect()
+            characterConnections[player] = nil
+        end
+
+        characterConnections[player] = player.CharacterAdded:Connect(function(character)
+            task.wait(0.5)
+            local petsFolder = character:FindFirstChild("Pets")
+            if petsFolder then
+                watchPetsFolder(player, petsFolder)
+            end
         end)
 
         if player.Character then
-            WatchPetsFolder(player)
+            local petsFolder = player.Character:FindFirstChild("Pets")
+            if petsFolder then
+                watchPetsFolder(player, petsFolder)
+            end
         end
     end
 
-    local function ApplyToAllPlayers()
+    local function cleanupPlayerConnections(player)
+        if characterConnections[player] then
+            characterConnections[player]:Disconnect()
+            characterConnections[player] = nil
+        end
+        
+        if petsFolderConnections[player] then
+            petsFolderConnections[player]:Disconnect()
+            petsFolderConnections[player] = nil
+        end
+    end
+
+    local function applyToAllOtherPlayers()
         for _, player in ipairs(Players:GetPlayers()) do
-            SetPetsVisibility(player, ShowOthersPets)
+            if player ~= LocalPlayer then
+                setOthersPetsVisibility(player, showOthersPets)
+            end
         end
     end
 
-    Players.PlayerAdded:Connect(WatchCharacter)
+    Players.PlayerRemoving:Connect(function(player)
+        cleanupPlayerConnections(player)
+    end)
+
     for _, player in ipairs(Players:GetPlayers()) do
-        WatchCharacter(player)
+        watchCharacter(player)
     end
 
-    tabAutomation:AddSwitch("Show Other Pets", function(State)
-        ShowOthersPets = State
-        ApplyToAllPlayers()
+    Players.PlayerAdded:Connect(function(player)
+        watchCharacter(player)
+    end)
+
+    tabAutomation:AddSwitch("Show Other Pets", function(state)
+        showOthersPets = state
+        applyToAllOtherPlayers()
     end)
 end
 
