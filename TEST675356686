@@ -1,4 +1,4 @@
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/1882827/UU76818II/main/UI853578987.lua"))()
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/1882827/865357UI/main/U585467I", true))()
 
 local window = library:AddWindow("veyna | PAID", {
     main_color = Color3.fromRGB(61, 10, 161),
