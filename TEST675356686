@@ -68,13 +68,12 @@ local sizeValue = 1
 local originalSizes = {}
 local setSize = false
 local sizeLoop = nil
+local player = game.Players.LocalPlayer
 
 local function applySize(character)
-    if not character then return false end
-    
+    if not character or not character:IsDescendantOf(workspace) then return false end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
-    
     local success = true
     for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
@@ -82,6 +81,7 @@ local function applySize(character)
             scaleInstance.Value = sizeValue
         else
             success = false
+            warn("Scale " .. scaleName .. " not found in humanoid")
         end
     end
     return success
@@ -89,10 +89,8 @@ end
 
 local function saveOriginalSizes(character)
     if not character then return false end
-    
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
-    
     for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance then
@@ -104,10 +102,8 @@ end
 
 local function restoreOriginalSize(character)
     if not character or not next(originalSizes) then return false end
-    
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
-    
     for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance and originalSizes[scaleName] then
@@ -122,7 +118,7 @@ tabAutomation:AddTextBox("Size", function(text)
     if size and size >= 0 and size <= 100 then
         sizeValue = size
         if setSize then
-            local character = game.Players.LocalPlayer.Character
+            local character = player.Character
             if character then
                 applySize(character)
             end
@@ -134,13 +130,10 @@ end)
 
 tabAutomation:AddSwitch("Set", function(state)
     setSize = state
-    local player = game.Players.LocalPlayer
-    
     if sizeLoop then
         sizeLoop:Disconnect()
         sizeLoop = nil
     end
-    
     if state then
         local character = player.Character
         if character then
@@ -160,7 +153,7 @@ tabAutomation:AddSwitch("Set", function(state)
                 end
             end)
         else
-            setSize = false
+            warn("No character found!")
         end
     else
         local character = player.Character
@@ -171,19 +164,21 @@ tabAutomation:AddSwitch("Set", function(state)
     end
 end)
 
-game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+player.CharacterAdded:Connect(function(character)
     if setSize then
+        local humanoid = character:WaitForChild("Humanoid")
         task.wait(0.5)
+        if not next(originalSizes) then
+            saveOriginalSizes(character)
+        end
         applySize(character)
     end
 end)
 
-game.Players.LocalPlayer.CharacterRemoving:Connect(function()
-    if setSize then
-        if sizeLoop then
-            sizeLoop:Disconnect()
-            sizeLoop = nil
-        end
+player.CharacterRemoving:Connect(function()
+    if setSize and sizeLoop then
+        sizeLoop:Disconnect()
+        sizeLoop = nil
     end
 end)
 
