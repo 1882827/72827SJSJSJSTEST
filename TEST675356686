@@ -67,41 +67,54 @@ end)
 local sizeValue = 1
 local originalSizes = {}
 local setSize = false
+local sizeLoop = nil
 
 local function applySize(character)
-    if not character then return end
+    if not character then return false end
+    
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+    if not humanoid then return false end
+    
+    local success = true
     for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance then
             scaleInstance.Value = sizeValue
+        else
+            success = false
         end
     end
-end
-
-local function restoreOriginalSize(character)
-    if not character or not next(originalSizes) then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
-        local scaleInstance = humanoid:FindFirstChild(scaleName)
-        if scaleInstance and originalSizes[scaleName] then
-            scaleInstance.Value = originalSizes[scaleName]
-        end
-    end
+    return success
 end
 
 local function saveOriginalSizes(character)
-    if not character then return end
+    if not character then return false end
+    
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+    if not humanoid then return false end
+    
     for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
         local scaleInstance = humanoid:FindFirstChild(scaleName)
         if scaleInstance then
             originalSizes[scaleName] = scaleInstance.Value
         end
     end
+    return true
+end
+
+local function restoreOriginalSize(character)
+    if not character or not next(originalSizes) then return false end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    
+    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+        local scaleInstance = humanoid:FindFirstChild(scaleName)
+        if scaleInstance and originalSizes[scaleName] then
+            scaleInstance.Value = originalSizes[scaleName]
+        end
+    end
+    return true
 end
 
 tabAutomation:AddTextBox("Size", function(text)
@@ -109,26 +122,68 @@ tabAutomation:AddTextBox("Size", function(text)
     if size and size >= 0 and size <= 100 then
         sizeValue = size
         if setSize then
-            applySize(game.Players.LocalPlayer.Character)
+            local character = game.Players.LocalPlayer.Character
+            if character then
+                applySize(character)
+            end
         end
+    else
+        warn("Invalid size! Use a number between 0 and 100.")
     end
 end)
 
 tabAutomation:AddSwitch("Set", function(state)
     setSize = state
     local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
+    
+    if sizeLoop then
+        sizeLoop:Disconnect()
+        sizeLoop = nil
+    end
+    
     if state then
-        if not next(originalSizes) then
-            saveOriginalSizes(character)
-        end
-        applySize(character)
-        while setSize do
+        local character = player.Character
+        if character then
+            if not next(originalSizes) then
+                saveOriginalSizes(character)
+            end
             applySize(character)
-            task.wait(0.1)
+            sizeLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                if not setSize then
+                    sizeLoop:Disconnect()
+                    sizeLoop = nil
+                    return
+                end
+                local currentCharacter = player.Character
+                if currentCharacter then
+                    applySize(currentCharacter)
+                end
+            end)
+        else
+            setSize = false
         end
     else
-        restoreOriginalSize(character)
+        local character = player.Character
+        if character then
+            restoreOriginalSize(character)
+        end
+        table.clear(originalSizes)
+    end
+end)
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+    if setSize then
+        task.wait(0.5)
+        applySize(character)
+    end
+end)
+
+game.Players.LocalPlayer.CharacterRemoving:Connect(function()
+    if setSize then
+        if sizeLoop then
+            sizeLoop:Disconnect()
+            sizeLoop = nil
+        end
     end
 end)
 
