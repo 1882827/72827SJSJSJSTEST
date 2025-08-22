@@ -66,76 +66,70 @@ end)
 
 local sizeValue = 1
 local originalSizes = {}
+local setSize = false
+
+local function applySize(character)
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+        local scaleInstance = humanoid:FindFirstChild(scaleName)
+        if scaleInstance then
+            scaleInstance.Value = sizeValue
+        end
+    end
+end
+
+local function restoreOriginalSize(character)
+    if not character or not next(originalSizes) then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+        local scaleInstance = humanoid:FindFirstChild(scaleName)
+        if scaleInstance and originalSizes[scaleName] then
+            scaleInstance.Value = originalSizes[scaleName]
+        end
+    end
+end
+
+local function saveOriginalSizes(character)
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
+        local scaleInstance = humanoid:FindFirstChild(scaleName)
+        if scaleInstance then
+            originalSizes[scaleName] = scaleInstance.Value
+        end
+    end
+end
 
 tabAutomation:AddTextBox("Size", function(text)
     local size = tonumber(text)
     if size and size >= 0 and size <= 100 then
         sizeValue = size
         if setSize then
-            local char = game.Players.LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
-                        local scaleInstance = humanoid:FindFirstChild(scaleName)
-                        if scaleInstance then
-                            scaleInstance.Value = sizeValue
-                        end
-                    end
-                end
-            end
+            applySize(game.Players.LocalPlayer.Character)
         end
     end
 end)
 
-local setSize = false
 tabAutomation:AddSwitch("Set", function(state)
     setSize = state
-    task.spawn(function()
-        local char = game.Players.LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                if state and not next(originalSizes) then
-                    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
-                        local scaleInstance = humanoid:FindFirstChild(scaleName)
-                        if scaleInstance then
-                            originalSizes[scaleName] = scaleInstance.Value
-                        end
-                    end
-                end
-            end
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    if state then
+        if not next(originalSizes) then
+            saveOriginalSizes(character)
         end
-        
+        applySize(character)
         while setSize do
-            local char = game.Players.LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
-                        local scaleInstance = humanoid:FindFirstChild(scaleName)
-                        if scaleInstance then
-                            scaleInstance.Value = sizeValue
-                        end
-                    end
-                end
-            end
+            applySize(character)
             task.wait(0.1)
         end
-        
-        local char = game.Players.LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                for _, scaleName in pairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale"}) do
-                    local scaleInstance = humanoid:FindFirstChild(scaleName)
-                    if scaleInstance and originalSizes[scaleName] then
-                        scaleInstance.Value = originalSizes[scaleName]
-                    end
-                end
-            end
-        end
-    end)
+    else
+        restoreOriginalSize(character)
+    end
 end)
 
 tabAutomation:AddLabel("Misc").TextSize = 22
